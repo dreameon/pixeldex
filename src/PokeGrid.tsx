@@ -1,15 +1,16 @@
 import { useQuery, gql } from "@apollo/client";
 import PokeCard from "./PokeCard";
 import { PokeType, Pokemon } from "./Pokedex";
+import React, { useState } from "react";
 
 const style: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'center',
-  flexWrap: 'wrap',
-  columnGap: '0px', 
-  rowGap: '0px'
-}
-  
+  display: "flex",
+  justifyContent: "center",
+  flexWrap: "wrap",
+  columnGap: "0px",
+  rowGap: "0px",
+};
+
 function generateQuery(
   types: Set<PokeType>,
   gen: number,
@@ -31,7 +32,6 @@ function generateQuery(
         }}}}} `;
   const QUERY_BY_GEN = gen === 0 ? `` : `generation_id: {_eq: ${gen}}`;
   const QUERY_BY_NAME = name === "" ? `` : `name: {_regex : "${name}"}`;
-  console.log(QUERY_BY_NAME);
   const QUERY_BY_ID = id === 0 ? `` : `id : {_eq : ${id}}`;
 
   return gql`query samplePokeAPIquery {
@@ -39,10 +39,18 @@ function generateQuery(
             name
             id
             generation_id
+            
         }
     }  
   `;
 }
+
+//
+// pokemon_v2_evolutionchain {
+//   pokemon_v2_pokemonspecies {
+//     id
+//   }
+// }
 
 function PokeGrid(props: {
   types: Set<PokeType>;
@@ -50,22 +58,71 @@ function PokeGrid(props: {
   name: string;
   id: number;
   isShiny: boolean;
+  selectedTeam: (Pokemon | null)[];
+  setSelectedTeam: React.Dispatch<React.SetStateAction<(Pokemon | null)[]>>;
+  availableSlots: number[];
+  setAvailableSlots: React.Dispatch<React.SetStateAction<number[]>>;
 }) {
-
-  const { types, gen, name, id, isShiny} = props;
+  const [selectedPokemon, setSelectedPokemon] = useState(0);
+  const {
+    types,
+    gen,
+    name,
+    id,
+    isShiny,
+    selectedTeam,
+    setSelectedTeam,
+    availableSlots,
+    setAvailableSlots,
+  } = props;
   const GET_POKEMON = generateQuery(types, gen, name, id);
-
   const { loading, error, data } = useQuery(GET_POKEMON);
-  if (loading) return;
-  if (error) return;
 
   return (
     <div className="pokeGrid">
-      {data.pokemon_v2_pokemonspecies
-        .filter((pokemon: Pokemon) => pokemon.generation_id < 8)
-        .map((pokemon: Pokemon) => (
-          <PokeCard  key={pokemon.id} pokemon={pokemon} isShiny={isShiny} />
-        ))}
+      {!loading &&
+        !error &&
+        data.pokemon_v2_pokemonspecies
+          .filter((pokemon: Pokemon) => pokemon.generation_id < 9)
+          .map((pokemon: Pokemon) => {
+            // const handleOver = () => setSelectedPokemon(pokemon.id);
+            // const handleOut = () => setSelectedPokemon(0);
+            const handleClick = () => {
+              if (selectedTeam.includes(null)) {
+                const index = selectedTeam.indexOf(null);
+                setSelectedTeam((prev) => {
+                  const newTeam = [...prev];
+                  newTeam[index] = pokemon;
+                  return newTeam;
+                });
+                console.log(selectedTeam);
+                // {
+                //   const newSelectedTeam = [...prev];
+                //   console.log(availableSlots);
+                //   newSelectedTeam[availableSlots[0]] = pokemon;
+                //   // console.log(selectedTeam);
+                //   return newSelectedTeam;
+                // });
+
+                // const newSlots = availableSlots;
+                // newSlots.sort();
+                // newSlots.shift();
+                // setAvailableSlots(newSlots);
+              }
+            };
+            return (
+              <div className="pokeCardWrapper">
+                <PokeCard
+                  // handleOver={handleOver}
+                  // handleOut={handleOut}
+                  handleClick={handleClick}
+                  key={pokemon.id}
+                  pokemon={pokemon}
+                  isShiny={isShiny}
+                />
+              </div>
+            );
+          })}
     </div>
   );
 }
